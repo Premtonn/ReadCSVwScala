@@ -1,0 +1,65 @@
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.types._ // StructType
+import org.apache.spark._
+object csvRead{
+	 def main(args: Array[String]) {
+
+	 // create Spark session
+	 val spark = SparkSession.builder().appName("csv-HDFS")
+								.master("local[2]").getOrCreate();
+	 // create Spark context
+	 val sc=spark.sparkContext
+	 // set level of terminal logging information
+	 spark.sparkContext.setLogLevel("Warn")
+
+	 // create SQL context
+	 val sqlContext = new SQLContext(sc)
+
+	 // define schema for CSV reading
+	 val userSchema = new StructType()
+	 .add("player","string")
+	 .add("team","string")
+	 .add("go","integer")
+	 .add("as","integer")
+	 .add("pt","integer")
+	 .add("+/-","integer")
+
+
+	 // read CSV file into a DataFrame
+	 val csvDF = sqlContext
+	 .read
+	 .format("csv")
+	 .option("sep", ";")
+	 .option("header","true")
+	 //.schema(userSchema) // user-defined schema
+	 .option("inferSchema","true") // automatically defined schema
+	 .load("hdfs://localhost:54310/spark/input/NHL_stats_2021-2022.csv")
+
+	 // show schema
+	csvDF.printSchema()
+
+
+	 //val result =csvDF.select("Player","Season","Team","G","A").where("A >
+	30 AND G < 20") output1
+	 //val result =csvDF.select("Player","Season","Team","G","A").where("A >
+	30 AND G < 20") output2
+	 val result =csvDF.select("Player","S/C","Pos","+/-").where("`S/C` = 'L'
+	AND `+/-`>= 18") //output3
+
+	 // show result on terminal
+	 result.show()
+
+	 // write result to file
+	 result.write
+	 .option("header", "true")
+	 .option("sep", ";")
+	 //.csv("file:///home/premton/spark/output/")
+	 //.csv("hdfs://localhost:54310/spark/output1/") output1 file
+
+	 //.csv("hdfs://localhost:54310/spark/output2/") output2 file
+	 .csv("hdfs://localhost:54310/spark/output3/") //output3 file
+
+	 spark.stop()
+	}
+} 
